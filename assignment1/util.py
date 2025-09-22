@@ -7,6 +7,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.exceptions import InvalidSignature
 
+import requests
+import os
+import re
 
 # extracts and returns public key from a given cert (in pem format)
 def extract_public_key(cert):
@@ -56,5 +59,46 @@ def verify_artifact_signature(signature, public_key, artifact_filename):
         )
     except InvalidSignature as e:
         print("Signature is invalid")
+        raise e
     except Exception as e:
         print("Exception in verifying artifact signature:", e)
+        raise e
+
+def validate_log_index(log_index, debug):
+    if not isinstance(log_index, int) or log_index <0:
+        raise ValueError(f"Log index should be a non-negative integer, {log_index}")
+    try:
+        response = requests.get('https://rekor.sigstore.dev/api/v1/log/entries?logIndex={0}'.format(log_index), 6)
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        if e.response.status_code == 404:
+            if debug:
+                print(f"Validation failed: Log index {log_index} not found")
+        else:
+            print(f"Network call failed: {e}")
+        return False
+    except Exception as e:
+        print(f"Unable to execute /log/entries request: {e}")
+        return False
+
+    return True
+
+def validate_artifact_path(artifact_path):
+    if not artifact_path:
+        raise ValueError("Artifact path can't be empty")
+    if not os.path.exists(artifact_path):
+        raise ValueError(f"Given artifact path: {artifact_path} doesn't exist")
+    return True
+
+def validate_tree_size(tree_size):
+    if not isinstance(tree_size, int) or tree_size <0:
+        raise ValueError(f"Tree size should be a non-negative integer, {tree_size}")
+    return True
+
+# Used ChatGPT to generate this function
+def validate_root_hash(hash):
+    if not isinstance(hash, str):
+        return False
+    
+    # Check for 64 hexadecimal characters, case-insensitive
+    return bool(re.match(r"^[0-9a-fA-F]{64}$", hash))
