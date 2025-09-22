@@ -1,13 +1,14 @@
 import argparse
 from util import extract_public_key, verify_artifact_signature, validate_artifact_path, validate_log_index, validate_root_hash, validate_tree_size
 from merkle_proof import DefaultHasher, verify_consistency, verify_inclusion, compute_leaf_hash
+from constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
 import requests
 import json
 import base64
 
 def get_log_entry(log_index, debug=False):
-    response = requests.get('https://rekor.sigstore.dev/api/v1/log/entries?logIndex={0}'.format(log_index))
+    response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     data = response.json()
     try:
@@ -81,9 +82,12 @@ def inclusion(log_index, artifact_filepath, debug=False):
     return True
 
 def get_latest_checkpoint(debug=False):
-    response = requests.get('https://rekor.sigstore.dev/api/v1/log')
+    response = requests.get(GET_LOG, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     data = response.json()
+    if debug:
+        with open('checkpoint.json', 'w') as f:
+            json.dump(data, f, indent=4)
     return data
 
 def consistency(prev_checkpoint, debug=False):
@@ -99,12 +103,16 @@ def consistency(prev_checkpoint, debug=False):
         size_2 = int(latest_checkpoint['treeSize'])
         latest_root_hash = latest_checkpoint['rootHash']
 
-        if not validate_tree_size(size_1) or not validate_tree_size(size_2):
-            raise ValueError(f"Invalid tree size")
-        if not validate_root_hash(root_hash) or not validate_root_hash(latest_root_hash):
-            raise ValueError(f"Invalid root hash")
+        if not validate_tree_size(size_1):
+            raise ValueError(f"Invalid old checkpoint tree size: {size_1}")
+        if not validate_tree_size(size_2):
+            raise ValueError(f"Invalid latest checkpoint tree size: {size_2}")
+        if not validate_root_hash(root_hash):
+            raise ValueError(f"Invalid old checkpoint root hash: {root_hash}")
+        if not validate_root_hash(latest_root_hash):
+            raise ValueError(f"Invalid latest checkpoint root hash: {latest_root_hash}")
 
-        response = requests.get('https://rekor.sigstore.dev/api/v1/log/proof?firstSize={0}&lastSize={1}&treeId={2}'.format(size_1, size_2, tree_id))
+        response = requests.get(GET_PROOF.format(size_1, size_2, tree_id), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         verify_consistency(DefaultHasher, size_1, size_2, response.json()['hashes'], root_hash, latest_root_hash)
 

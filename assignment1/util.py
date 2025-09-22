@@ -10,6 +10,7 @@ from cryptography.exceptions import InvalidSignature
 import requests
 import os
 import re
+from constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
 
 # extracts and returns public key from a given cert (in pem format)
 def extract_public_key(cert):
@@ -68,7 +69,7 @@ def validate_log_index(log_index, debug):
     if not isinstance(log_index, int) or log_index <0:
         raise ValueError(f"Log index should be a non-negative integer, {log_index}")
     try:
-        response = requests.get('https://rekor.sigstore.dev/api/v1/log/entries?logIndex={0}'.format(log_index), 6)
+        response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
     except requests.HTTPError as e:
         if e.response.status_code == 404:
