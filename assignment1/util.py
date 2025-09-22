@@ -7,6 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.exceptions import InvalidSignature
 
+import base64
+import json
 import requests
 import os
 import re
@@ -60,7 +62,7 @@ def verify_artifact_signature(signature, public_key, artifact_filename):
         )
     except InvalidSignature as e:
         print("Signature is invalid")
-        raise e
+        raise ValueError("Signature is invalid")
     except Exception as e:
         print("Exception in verifying artifact signature:", e)
         raise e
@@ -83,6 +85,19 @@ def validate_log_index(log_index, debug):
         return False
 
     return True
+
+# derive signature and public key from given log entry
+def get_user_auth(log_entry):
+    uuid = list(log_entry.keys())[0]
+    encoded_bytes = log_entry[uuid]['body'].encode('utf-8')
+    decoded_bytes = base64.b64decode(encoded_bytes)
+    decoded_string = decoded_bytes.decode('utf-8')
+    body = json.loads(decoded_string)
+    signature = body['spec']['signature']['content']
+    public_cert = body['spec']['signature']['publicKey']['content']
+    decoded_signature = base64.b64decode(signature.encode('utf-8'))
+    decoded_public_cert = base64.b64decode(public_cert.encode('utf-8'))
+    return decoded_signature, decoded_public_cert
 
 def validate_artifact_path(artifact_path):
     if not artifact_path:

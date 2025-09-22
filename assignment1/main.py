@@ -1,11 +1,10 @@
 import argparse
-from util import extract_public_key, verify_artifact_signature, validate_artifact_path, validate_log_index, validate_root_hash, validate_tree_size
+from util import extract_public_key, verify_artifact_signature, validate_artifact_path, validate_log_index, validate_root_hash, validate_tree_size, get_user_auth
 from merkle_proof import DefaultHasher, verify_consistency, verify_inclusion, compute_leaf_hash
 from constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
 import requests
 import json
-import base64
 
 def get_log_entry(log_index, debug=False):
     response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
@@ -22,24 +21,13 @@ def get_log_entry(log_index, debug=False):
     except ValueError as e:
         raise e
 
-def get_user_auth(log_entry):
-    uuid = list(log_entry.keys())[0]
-    encoded_bytes = log_entry[uuid]['body'].encode('utf-8')
-    decoded_bytes = base64.b64decode(encoded_bytes)
-    decoded_string = decoded_bytes.decode('utf-8')
-    body = json.loads(decoded_string)
-    signature = body['spec']['signature']['content']
-    public_cert = body['spec']['signature']['publicKey']['content']
-    decoded_signature = base64.b64decode(signature.encode('utf-8'))
-    decoded_public_cert = base64.b64decode(public_cert.encode('utf-8'))
-    return decoded_signature, decoded_public_cert
-
-def get_verification_proof(log_index, debug=False):
+def get_verification_proof(log_entry):
     # forgoeing the cost of additional network call for log index validation with below call
     try:
-        entry = get_log_entry(log_index)
-        uuid = list(entry.keys())[0]
-        proof = entry[uuid]['verification']['inclusionProof']
+        if not log_entry:
+            raise ValueError("Log entry can't be empty")
+        uuid = list(log_entry.keys())[0]
+        proof = log_entry[uuid]['verification']['inclusionProof']
     except Exception as e:
         raise e
     return proof
@@ -60,7 +48,7 @@ def inclusion(log_index, artifact_filepath, debug=False):
 
         verify_artifact_signature(signature, public_key, artifact_filepath)
 
-        proof = get_verification_proof(log_index)
+        proof = get_verification_proof(data)
         if not proof:
             raise ValueError(f"Verification proof not found/invalid: {proof}")
         index = proof['logIndex']
@@ -78,7 +66,7 @@ def inclusion(log_index, artifact_filepath, debug=False):
         print(f"Inclusion verification failed due to: {e}")
         return False
     
-    print(f"Signature is valid.\nOffline root hash calculation for inclusion verified")
+    print(f"Signature is valid.\nOffline root hash calculation for inclusion verified.")
     return True
 
 def get_latest_checkpoint(debug=False):
@@ -158,6 +146,9 @@ def main():
         checkpoint = get_latest_checkpoint(debug)
         print(json.dumps(checkpoint, indent=4))
     if args.inclusion:
+        if not args.artifact:
+            print("please specify artifact filepath for inclusion proof")
+            return
         inclusion(args.inclusion, args.artifact, debug)
     if args.consistency:
         if not args.tree_id:
