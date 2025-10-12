@@ -1,4 +1,15 @@
+"""
+Main module for Rekor transparency log verification.
+
+This module provides functionality to verify inclusion and consistency proofs
+for entries in the Rekor transparency log.
+"""
+
 import argparse
+import json
+
+import requests
+
 from util import (
     extract_public_key,
     verify_artifact_signature,
@@ -9,18 +20,28 @@ from util import (
     get_user_auth,
 )
 from merkle_proof import (
-    DefaultHasher,
+    DEFAULT_HASHER,
     verify_consistency,
     verify_inclusion,
     compute_leaf_hash,
 )
 from constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
-import requests
-import json
-
 
 def get_log_entry(log_index, debug=False):
+    """
+    Fetch log entry from Rekor by log index.
+
+    Args:
+        log_index: The log index to fetch
+        debug: Enable debug output
+
+    Returns:
+        dict: The log entry data
+
+    Raises:
+        ValueError: If log entry is invalid
+    """
     response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     data = response.json()
@@ -31,12 +52,26 @@ def get_log_entry(log_index, debug=False):
             raise ValueError(f"Log index should be a non-negative integer, {log_index}")
         if not data[uuid]["verification"]["inclusionProof"]:
             raise ValueError(f"Given log index: {log_index} is invalid")
+        if debug:
+            print(f"Fetched log entry with UUID: {uuid}")
         return data
     except ValueError as e:
         raise e
 
 
 def get_verification_proof(log_entry):
+    """
+    Extract verification proof from log entry.
+
+    Args:
+        log_entry: The Rekor log entry
+
+    Returns:
+        dict: The inclusion proof data
+
+    Raises:
+        ValueError: If log entry is invalid
+    """
     # forgoeing the cost of additional network call for log index validation with below call
     try:
         if not log_entry:
@@ -49,6 +84,17 @@ def get_verification_proof(log_entry):
 
 
 def inclusion(log_index, artifact_filepath, debug=False):
+    """
+    Verify inclusion proof for an artifact in Rekor log.
+
+    Args:
+        log_index: The log index to verify
+        artifact_filepath: Path to the artifact file
+        debug: Enable debug output
+
+    Returns:
+        bool: True if verification succeeds, False otherwise
+    """
     try:
         if not validate_log_index(log_index, debug):
             raise ValueError(
@@ -79,12 +125,15 @@ def inclusion(log_index, artifact_filepath, debug=False):
         leaf_hash = compute_leaf_hash(data[uuid]["body"].encode("utf-8"))
 
         verify_inclusion(
-            DefaultHasher, index, tree_size, leaf_hash, hashes, root_hash, debug
+            DEFAULT_HASHER, index, tree_size, leaf_hash, hashes, root_hash, debug
         )
     except ValueError as e:
         print(f"Validation error: {e}")
         return False
-    except Exception as e:
+    except (requests.RequestException, KeyError) as e:
+        print(f"Network or data error: {e}")
+        return False
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Inclusion verification failed due to: {e}")
         return False
 
@@ -93,16 +142,35 @@ def inclusion(log_index, artifact_filepath, debug=False):
 
 
 def get_latest_checkpoint(debug=False):
+    """
+    Fetch the latest checkpoint from Rekor.
+
+    Args:
+        debug: If True, save checkpoint to file
+
+    Returns:
+        dict: The latest checkpoint data
+    """
     response = requests.get(GET_LOG, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
     data = response.json()
     if debug:
-        with open("checkpoint.json", "w") as f:
+        with open("checkpoint.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
     return data
 
 
 def consistency(prev_checkpoint, debug=False):
+    """
+    Verify consistency between previous and latest checkpoint.
+
+    Args:
+        prev_checkpoint: Previous checkpoint data
+        debug: Enable debug output
+
+    Returns:
+        bool: True if verification succeeds, False otherwise
+    """
     # verify that prev checkpoint is not empty
     # get_latest_checkpoint()
     try:
@@ -114,6 +182,9 @@ def consistency(prev_checkpoint, debug=False):
         size_1 = tree_size
         size_2 = int(latest_checkpoint["treeSize"])
         latest_root_hash = latest_checkpoint["rootHash"]
+
+        if debug:
+            print(f"Checking consistency: size {size_1} -> {size_2}")
 
         if not validate_tree_size(size_1):
             raise ValueError(f"Invalid old checkpoint tree size: {size_1}")
@@ -129,7 +200,7 @@ def consistency(prev_checkpoint, debug=False):
         )
         response.raise_for_status()
         verify_consistency(
-            DefaultHasher,
+            DEFAULT_HASHER,
             size_1,
             size_2,
             response.json()["hashes"],
@@ -137,7 +208,13 @@ def consistency(prev_checkpoint, debug=False):
             latest_root_hash,
         )
 
-    except Exception as e:
+    except (ValueError, KeyError) as e:
+        print(f"Invalid checkpoint data: {e}")
+        return False
+    except requests.RequestException as e:
+        print(f"Network error: {e}")
+        return False
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Failed consistency check: {e}")
         return False
 
@@ -146,6 +223,7 @@ def consistency(prev_checkpoint, debug=False):
 
 
 def main():
+    """Main entry point for the Rekor verifier CLI."""
     debug = False
     parser = argparse.ArgumentParser(description="Rekor Verifier")
     parser.add_argument(

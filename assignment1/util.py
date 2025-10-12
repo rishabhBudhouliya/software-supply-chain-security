@@ -1,22 +1,38 @@
+"""
+Utility functions for cryptographic operations and validation.
+
+This module provides helper functions for extracting public keys from certificates,
+verifying signatures, and validating various input parameters.
+"""
+
+import base64
+import json
+import os
+import re
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.exceptions import InvalidSignature
-
-import base64
-import json
 import requests
-import os
-import re
+
 from constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
 
 
 # extracts and returns public key from a given cert (in pem format)
 def extract_public_key(cert):
+    """
+    Extract public key from a PEM certificate.
+
+    Args:
+        cert: PEM formatted certificate bytes
+
+    Returns:
+        bytes: The public key in PEM format
+    """
     # read the certificate
     #    with open("cert.pem", "rb") as cert_file:
     #        cert_data = cert_file.read()
@@ -42,6 +58,17 @@ def extract_public_key(cert):
 
 
 def verify_artifact_signature(signature, public_key, artifact_filename):
+    """
+    Verify artifact signature using public key.
+
+    Args:
+        signature: The signature bytes
+        public_key: The public key in PEM format
+        artifact_filename: Path to the artifact file
+
+    Raises:
+        ValueError: If signature is invalid
+    """
     # load the public key
     # with open("cert_public.pem", "rb") as pub_key_file:
     #    public_key = load_pem_public_key(pub_key_file.read())
@@ -60,13 +87,26 @@ def verify_artifact_signature(signature, public_key, artifact_filename):
         public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))
     except InvalidSignature as e:
         print("Signature is invalid", e)
-        raise ValueError("Signature is invalid")
+        raise ValueError("Signature is invalid") from e
     except Exception as e:
         print("Exception in verifying artifact signature:", e)
         raise e
 
 
 def validate_log_index(log_index, debug):
+    """
+    Validate that log index exists in Rekor.
+
+    Args:
+        log_index: The log index to validate
+        debug: Enable debug output
+
+    Returns:
+        bool: True if valid, False otherwise
+
+    Raises:
+        ValueError: If log index format is invalid
+    """
     if not isinstance(log_index, int) or log_index < 0:
         raise ValueError(f"Log index should be a non-negative integer, {log_index}")
     try:
@@ -81,7 +121,7 @@ def validate_log_index(log_index, debug):
         else:
             print(f"Network call failed: {e}")
         return False
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Unable to execute /log/entries request: {e}")
         return False
 
@@ -90,6 +130,15 @@ def validate_log_index(log_index, debug):
 
 # derive signature and public key from given log entry
 def get_user_auth(log_entry):
+    """
+    Extract signature and public certificate from log entry.
+
+    Args:
+        log_entry: The Rekor log entry
+
+    Returns:
+        tuple: (signature bytes, public certificate bytes)
+    """
     uuid = list(log_entry.keys())[0]
     encoded_bytes = log_entry[uuid]["body"].encode("utf-8")
     decoded_bytes = base64.b64decode(encoded_bytes)
@@ -103,6 +152,18 @@ def get_user_auth(log_entry):
 
 
 def validate_artifact_path(artifact_path):
+    """
+    Validate that artifact path exists.
+
+    Args:
+        artifact_path: Path to the artifact
+
+    Returns:
+        bool: True if valid
+
+    Raises:
+        ValueError: If path is invalid or doesn't exist
+    """
     if not artifact_path:
         raise ValueError("Artifact path can't be empty")
     if not os.path.exists(artifact_path):
@@ -111,15 +172,36 @@ def validate_artifact_path(artifact_path):
 
 
 def validate_tree_size(tree_size):
+    """
+    Validate tree size is a non-negative integer.
+
+    Args:
+        tree_size: The tree size to validate
+
+    Returns:
+        bool: True if valid
+
+    Raises:
+        ValueError: If tree size is invalid
+    """
     if not isinstance(tree_size, int) or tree_size < 0:
         raise ValueError(f"Tree size should be a non-negative integer, {tree_size}")
     return True
 
 
 # Used ChatGPT to generate this function
-def validate_root_hash(hash):
-    if not isinstance(hash, str):
+def validate_root_hash(root_hash):
+    """
+    Validate root hash is a 64-character hex string.
+
+    Args:
+        root_hash: The root hash to validate
+
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    if not isinstance(root_hash, str):
         return False
 
     # Check for 64 hexadecimal characters, case-insensitive
-    return bool(re.match(r"^[0-9a-fA-F]{64}$", hash))
+    return bool(re.match(r"^[0-9a-fA-F]{64}$", root_hash))
