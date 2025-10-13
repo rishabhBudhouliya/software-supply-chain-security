@@ -9,6 +9,7 @@ import base64
 import json
 import os
 import re
+from typing import Dict, Any, Tuple
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -23,7 +24,7 @@ from constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
 
 
 # extracts and returns public key from a given cert (in pem format)
-def extract_public_key(cert):
+def extract_public_key(cert: bytes) -> bytes:
     """
     Extract public key from a PEM certificate.
 
@@ -33,9 +34,6 @@ def extract_public_key(cert):
     Returns:
         bytes: The public key in PEM format
     """
-    # read the certificate
-    #    with open("cert.pem", "rb") as cert_file:
-    #        cert_data = cert_file.read()
 
     # load the certificate
     certificate = x509.load_pem_x509_certificate(cert, default_backend())
@@ -43,13 +41,7 @@ def extract_public_key(cert):
     # extract the public key
     public_key = certificate.public_key()
 
-    # save the public key to a PEM file
-    #    with open("cert_public.pem", "wb") as pub_key_file:
-    #        pub_key_file.write(public_key.public_bytes(
-    #            encoding=serialization.Encoding.PEM,
-    #            format=serialization.PublicFormat.SubjectPublicKeyInfo
-    #        ))
-    pem_public_key = public_key.public_bytes(
+    pem_public_key: bytes = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
@@ -57,7 +49,9 @@ def extract_public_key(cert):
     return pem_public_key
 
 
-def verify_artifact_signature(signature, public_key, artifact_filename):
+def verify_artifact_signature(
+    signature: bytes, public_key: bytes, artifact_filename: str
+) -> None:
     """
     Verify artifact signature using public key.
 
@@ -69,22 +63,15 @@ def verify_artifact_signature(signature, public_key, artifact_filename):
     Raises:
         ValueError: If signature is invalid
     """
-    # load the public key
-    # with open("cert_public.pem", "rb") as pub_key_file:
-    #    public_key = load_pem_public_key(pub_key_file.read())
 
-    # load the signature
-    #    with open("hello.sig", "rb") as sig_file:
-    #        signature = sig_file.read()
-
-    public_key = load_pem_public_key(public_key)
+    loaded_public_key = load_pem_public_key(public_key)
     # load the data to be verified
     with open(artifact_filename, "rb") as data_file:
         data = data_file.read()
 
     # verify the signature
     try:
-        public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))
+        loaded_public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))  # type: ignore[attr-defined]
     except InvalidSignature as e:
         print("Signature is invalid", e)
         raise ValueError("Signature is invalid") from e
@@ -93,7 +80,7 @@ def verify_artifact_signature(signature, public_key, artifact_filename):
         raise e
 
 
-def validate_log_index(log_index, debug):
+def validate_log_index(log_index: int, debug: bool) -> bool:
     """
     Validate that log index exists in Rekor.
 
@@ -129,7 +116,7 @@ def validate_log_index(log_index, debug):
 
 
 # derive signature and public key from given log entry
-def get_user_auth(log_entry):
+def get_user_auth(log_entry: Dict[str, Any]) -> Tuple[bytes, bytes]:
     """
     Extract signature and public certificate from log entry.
 
@@ -139,6 +126,7 @@ def get_user_auth(log_entry):
     Returns:
         tuple: (signature bytes, public certificate bytes)
     """
+    # Rekor API returns log entries with UUID as the single top-level key
     uuid = list(log_entry.keys())[0]
     encoded_bytes = log_entry[uuid]["body"].encode("utf-8")
     decoded_bytes = base64.b64decode(encoded_bytes)
@@ -151,7 +139,7 @@ def get_user_auth(log_entry):
     return decoded_signature, decoded_public_cert
 
 
-def validate_artifact_path(artifact_path):
+def validate_artifact_path(artifact_path: str) -> bool:
     """
     Validate that artifact path exists.
 
@@ -171,7 +159,7 @@ def validate_artifact_path(artifact_path):
     return True
 
 
-def validate_tree_size(tree_size):
+def validate_tree_size(tree_size: int) -> bool:
     """
     Validate tree size is a non-negative integer.
 
@@ -190,7 +178,7 @@ def validate_tree_size(tree_size):
 
 
 # Used ChatGPT to generate this function
-def validate_root_hash(root_hash):
+def validate_root_hash(root_hash: str) -> bool:
     """
     Validate root hash is a 64-character hex string.
 

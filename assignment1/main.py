@@ -7,7 +7,7 @@ for entries in the Rekor transparency log.
 
 import argparse
 import json
-
+from typing import Any, Dict
 import requests
 
 from util import (
@@ -28,7 +28,7 @@ from merkle_proof import (
 from constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
 
-def get_log_entry(log_index, debug=False):
+def get_log_entry(log_index: int, debug: bool = False) -> Dict[str, Any]:
     """
     Fetch log entry from Rekor by log index.
 
@@ -44,7 +44,7 @@ def get_log_entry(log_index, debug=False):
     """
     response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    data = response.json()
+    data: Dict[str, Any] = response.json()
     try:
         uuid = list(data.keys())[0]
         log_index = data[uuid]["logIndex"]
@@ -59,7 +59,7 @@ def get_log_entry(log_index, debug=False):
         raise e
 
 
-def get_verification_proof(log_entry):
+def get_verification_proof(log_entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extract verification proof from log entry.
 
@@ -77,13 +77,13 @@ def get_verification_proof(log_entry):
         if not log_entry:
             raise ValueError("Log entry can't be empty")
         uuid = list(log_entry.keys())[0]
-        proof = log_entry[uuid]["verification"]["inclusionProof"]
+        proof: Dict[str, Any] = log_entry[uuid]["verification"]["inclusionProof"]
     except Exception as e:
         raise e
     return proof
 
 
-def inclusion(log_index, artifact_filepath, debug=False):
+def inclusion(log_index: int, artifact_filepath: str, debug: bool = False) -> bool:
     """
     Verify inclusion proof for an artifact in Rekor log.
 
@@ -141,7 +141,7 @@ def inclusion(log_index, artifact_filepath, debug=False):
     return True
 
 
-def get_latest_checkpoint(debug=False):
+def get_latest_checkpoint(debug: bool = False) -> Dict[str, Any]:
     """
     Fetch the latest checkpoint from Rekor.
 
@@ -153,14 +153,14 @@ def get_latest_checkpoint(debug=False):
     """
     response = requests.get(GET_LOG, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    data = response.json()
+    data: Dict[str, Any] = response.json()
     if debug:
         with open("checkpoint.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
     return data
 
 
-def consistency(prev_checkpoint, debug=False):
+def consistency(prev_checkpoint: Dict[str, Any], debug: bool = False) -> bool:
     """
     Verify consistency between previous and latest checkpoint.
 
@@ -222,7 +222,7 @@ def consistency(prev_checkpoint, debug=False):
     return True
 
 
-def main():
+def main() -> None:
     """Main entry point for the Rekor verifier CLI."""
     debug = False
     parser = argparse.ArgumentParser(description="Rekor Verifier")
