@@ -1,0 +1,21 @@
+# Code Owners for Rekor Verifier
+
+# Global owner - responsible for all files
+* @rishabhBudhouliya
+
+# Assignment 1 - Main project code
+/assignment1/ @rishabhBudhouliya
+
+# Tests directory
+/tests/ @rishabhBudhouliya
+
+# Documentation
+*.md @rishabhBudhouliya
+/SECURITY.md @rishabhBudhouliya
+/CONTRIBUTING.md @rishabhBudhouliya
+
+# Configuration files
+/pyproject.toml @rishabhBudhouliya
+/poetry.lock @rishabhBudhouliya
+/.pre-commit-config.yaml @rishabhBudhouliya
+/.gitignore @rishabhBudhouliya
