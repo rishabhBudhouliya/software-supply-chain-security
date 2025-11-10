@@ -1,0 +1,19 @@
+# Pre-commit hooks configuration
+
+repos:
+  - repo: local
+    hooks:
+      - id: trufflehog
+        name: TruffleHog Secret Scanner (staged files only)
+        entry: bash -c '
+          STAGED=$(git diff --cached --name-only --diff-filter=ACM);
+          if [ -n "$STAGED" ]; then
+            echo "Scanning staged files with TruffleHog...";
+            echo "$STAGED" | xargs trufflehog filesystem --fail;
+          else
+            echo "No staged files to scan.";
+          fi'
+        language: system
+        pass_filenames: false
+        stages: [commit, push]
+
