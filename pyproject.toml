@@ -1,0 +1,104 @@
+[project]
+name = "rekor-verifier"
+version = "3.0.0"
+description = "A Python tool for verifying inclusion and consistency proofs in the Rekor transparency log"
+authors = [
+    {name = "Rishabh Budhouliya"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "^3.11"
+dependencies = [
+    "requests (>=2.32.5,<3.0.0)",
+    "cryptography (>=46.0.3,<47.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "mypy (>=1.18.2,<2.0.0)",
+    "ruff (>=0.14.4,<0.15.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "pylint (>=4.0.2,<5.0.0)",
+    "bandit (>=1.8.6,<2.0.0)",
+    "pytest (>=9.0.0,<10.0.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)"
+]
+
+# Tool Configurations
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "cryptography.*"
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+    "C4",  # flake8-comprehensions
+]
+ignore = []
+
+[tool.pylint.main]
+max-line-length = 100
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "R0913",  # too-many-arguments
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv"]
+skips = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--cov=assignment1",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["assignment1"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
