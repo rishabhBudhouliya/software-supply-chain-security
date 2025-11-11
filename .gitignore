@@ -121,7 +121,6 @@ ruff-*.txt
 # Assignment-specific
 assignment2-*.zip
 cosign.bundle
-personal.txt
 
 # Coverage reports
 .coverage

@@ -10,7 +10,7 @@ import json
 from typing import Any, Dict
 import requests
 
-from util import (
+from assignment1.util import (
     extract_public_key,
     verify_artifact_signature,
     validate_artifact_path,
@@ -19,13 +19,13 @@ from util import (
     validate_tree_size,
     get_user_auth,
 )
-from merkle_proof import (
+from assignment1.merkle_proof import (
     DEFAULT_HASHER,
     verify_consistency,
     verify_inclusion,
     compute_leaf_hash,
 )
-from constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
+from assignment1.constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
 
 def get_log_entry(log_index: int, debug: bool = False) -> Dict[str, Any]:
