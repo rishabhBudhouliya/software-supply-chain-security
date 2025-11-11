@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.exceptions import InvalidSignature
 import requests
 
-from constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
+from assignment1.constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
 
 
 # extracts and returns public key from a given cert (in pem format)
