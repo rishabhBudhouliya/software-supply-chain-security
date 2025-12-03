@@ -7,28 +7,29 @@ for entries in the Rekor transparency log.
 
 import argparse
 import json
-from typing import Any, Dict
+from typing import Any
+
 import requests
 
+from assignment1.constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
+from assignment1.merkle_proof import (
+    DEFAULT_HASHER,
+    compute_leaf_hash,
+    verify_consistency,
+    verify_inclusion,
+)
 from assignment1.util import (
     extract_public_key,
-    verify_artifact_signature,
+    get_user_auth,
     validate_artifact_path,
     validate_log_index,
     validate_root_hash,
     validate_tree_size,
-    get_user_auth,
+    verify_artifact_signature,
 )
-from assignment1.merkle_proof import (
-    DEFAULT_HASHER,
-    verify_consistency,
-    verify_inclusion,
-    compute_leaf_hash,
-)
-from assignment1.constants import GET_LOG, GET_LOG_ENTRY, GET_PROOF, REQUEST_TIMEOUT
 
 
-def get_log_entry(log_index: int, debug: bool = False) -> Dict[str, Any]:
+def get_log_entry(log_index: int, debug: bool = False) -> dict[str, Any]:
     """
     Fetch log entry from Rekor by log index.
 
@@ -44,7 +45,7 @@ def get_log_entry(log_index: int, debug: bool = False) -> Dict[str, Any]:
     """
     response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    data: Dict[str, Any] = response.json()
+    data: dict[str, Any] = response.json()
     try:
         uuid = list(data.keys())[0]
         log_index = data[uuid]["logIndex"]
@@ -59,7 +60,7 @@ def get_log_entry(log_index: int, debug: bool = False) -> Dict[str, Any]:
         raise e
 
 
-def get_verification_proof(log_entry: Dict[str, Any]) -> Dict[str, Any]:
+def get_verification_proof(log_entry: dict[str, Any]) -> dict[str, Any]:
     """
     Extract verification proof from log entry.
 
@@ -77,7 +78,7 @@ def get_verification_proof(log_entry: Dict[str, Any]) -> Dict[str, Any]:
         if not log_entry:
             raise ValueError("Log entry can't be empty")
         uuid = list(log_entry.keys())[0]
-        proof: Dict[str, Any] = log_entry[uuid]["verification"]["inclusionProof"]
+        proof: dict[str, Any] = log_entry[uuid]["verification"]["inclusionProof"]
     except Exception as e:
         raise e
     return proof
@@ -135,7 +136,7 @@ def inclusion(log_index: int, artifact_filepath: str, debug: bool = False) -> bo
     return True
 
 
-def get_latest_checkpoint(debug: bool = False) -> Dict[str, Any]:
+def get_latest_checkpoint(debug: bool = False) -> dict[str, Any]:
     """
     Fetch the latest checkpoint from Rekor.
 
@@ -147,14 +148,14 @@ def get_latest_checkpoint(debug: bool = False) -> Dict[str, Any]:
     """
     response = requests.get(GET_LOG, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
-    data: Dict[str, Any] = response.json()
+    data: dict[str, Any] = response.json()
     if debug:
         with open("checkpoint.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
     return data
 
 
-def consistency(prev_checkpoint: Dict[str, Any], debug: bool = False) -> bool:
+def consistency(prev_checkpoint: dict[str, Any], debug: bool = False) -> bool:
     """
     Verify consistency between previous and latest checkpoint.
 

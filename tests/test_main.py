@@ -4,12 +4,14 @@ Note: Test structure and implementation assisted by Claude AI (Anthropic).
 Reviewed, understood, and verified by Rishabh Budhouliya.
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
 import requests
+
 from assignment1.main import (
-    get_log_entry,
     get_latest_checkpoint,
+    get_log_entry,
 )
 
 
@@ -117,7 +119,7 @@ def test_get_log_entry_with_debug(capsys):
         result = get_log_entry(123, debug=True)
 
         # Should print debug info
-        captured = capsys.readouterr()
+        _ = capsys.readouterr()
         assert "test-uuid" in result
 
 
@@ -387,8 +389,9 @@ def test_consistency_with_debug(capsys):
 
 def test_get_latest_checkpoint_with_debug(tmp_path):
     """Test get_latest_checkpoint() saves to file in debug mode."""
-    from assignment1.main import get_latest_checkpoint
     import os
+
+    from assignment1.main import get_latest_checkpoint
 
     # Change to temp directory
     orig_dir = os.getcwd()

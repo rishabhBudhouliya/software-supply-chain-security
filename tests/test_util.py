@@ -5,13 +5,15 @@ Note: Test structure and implementation assisted by Claude AI (Anthropic).
 Reviewed, understood, and verified by Rishabh Budhouliya.
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
+
 from assignment1.util import (
-    validate_log_index,
-    validate_tree_size,
-    validate_root_hash,
     validate_artifact_path,
+    validate_log_index,
+    validate_root_hash,
+    validate_tree_size,
 )
 
 
@@ -163,6 +165,7 @@ def test_get_user_auth():
     """Test get_user_auth() extracts signature and certificate."""
     import base64
     import json
+
     from assignment1.util import get_user_auth
 
     # Create a sample log entry structure
