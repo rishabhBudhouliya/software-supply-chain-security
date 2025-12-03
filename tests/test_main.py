@@ -28,9 +28,9 @@ def test_get_log_entry_success():
                         "hashes": ["hash1", "hash2"],
                         "logIndex": 12345,
                         "rootHash": "a" * 64,
-                        "treeSize": 10000
+                        "treeSize": 10000,
                     }
-                }
+                },
             }
         }
         mock_response.raise_for_status = Mock()
@@ -65,7 +65,7 @@ def test_get_latest_checkpoint_success():
         checkpoint_json = {
             "treeSize": 100000,
             "rootHash": "Y7Z3pSC0nPkflzFCfPBFx7E/GYvY7xvQw6J8sWx+nKY=",
-            "timestamp": 1234567890
+            "timestamp": 1234567890,
         }
         mock_response = Mock()
         mock_response.json.return_value = checkpoint_json
@@ -106,9 +106,9 @@ def test_get_log_entry_with_debug(capsys):
                         "logIndex": 123,
                         "rootHash": "a" * 64,
                         "treeSize": 1000,
-                        "hashes": ["hash1", "hash2"]
+                        "hashes": ["hash1", "hash2"],
                     }
-                }
+                },
             }
         }
         mock_response.raise_for_status = Mock()
@@ -132,7 +132,7 @@ def test_get_verification_proof_success():
                     "logIndex": 123,
                     "rootHash": "a" * 64,
                     "treeSize": 1000,
-                    "hashes": ["hash1", "hash2"]
+                    "hashes": ["hash1", "hash2"],
                 }
             }
         }
@@ -161,13 +161,14 @@ def test_inclusion_success(tmp_path):
     artifact = tmp_path / "artifact.txt"
     artifact.write_text("test artifact content")
 
-    with patch("assignment1.main.validate_log_index") as mock_validate, \
-         patch("assignment1.main.get_log_entry") as mock_get_entry, \
-         patch("assignment1.main.get_user_auth") as mock_auth, \
-         patch("assignment1.main.extract_public_key") as mock_extract, \
-         patch("assignment1.main.verify_artifact_signature") as mock_verify_sig, \
-         patch("assignment1.main.verify_inclusion") as mock_verify_inc:
-
+    with (
+        patch("assignment1.main.validate_log_index") as mock_validate,
+        patch("assignment1.main.get_log_entry") as mock_get_entry,
+        patch("assignment1.main.get_user_auth") as mock_auth,
+        patch("assignment1.main.extract_public_key") as mock_extract,
+        patch("assignment1.main.verify_artifact_signature") as mock_verify_sig,
+        patch("assignment1.main.verify_inclusion") as mock_verify_inc,
+    ):
         # Setup mocks
         mock_validate.return_value = True
         mock_get_entry.return_value = {
@@ -178,9 +179,9 @@ def test_inclusion_success(tmp_path):
                         "logIndex": 123,
                         "rootHash": "a" * 64,
                         "treeSize": 1000,
-                        "hashes": ["hash1", "hash2"]
+                        "hashes": ["hash1", "hash2"],
                     }
-                }
+                },
             }
         }
         mock_auth.return_value = (b"signature", b"cert")
@@ -224,10 +225,11 @@ def test_inclusion_network_error():
     """Test inclusion() handles network errors gracefully."""
     from assignment1.main import inclusion
 
-    with patch("assignment1.main.validate_log_index") as mock_validate, \
-         patch("assignment1.main.validate_artifact_path") as mock_val_path, \
-         patch("assignment1.main.get_log_entry") as mock_get_entry:
-
+    with (
+        patch("assignment1.main.validate_log_index") as mock_validate,
+        patch("assignment1.main.validate_artifact_path") as mock_val_path,
+        patch("assignment1.main.get_log_entry") as mock_get_entry,
+    ):
         mock_validate.return_value = True
         mock_val_path.return_value = True
         mock_get_entry.side_effect = requests.RequestException("Network error")
@@ -241,27 +243,19 @@ def test_consistency_success():
     """Test consistency() with successful verification."""
     from assignment1.main import consistency
 
-    prev_checkpoint = {
-        "treeID": "test-tree-id",
-        "treeSize": 1000,
-        "rootHash": "a" * 64
-    }
+    prev_checkpoint = {"treeID": "test-tree-id", "treeSize": 1000, "rootHash": "a" * 64}
 
-    with patch("assignment1.main.get_latest_checkpoint") as mock_latest, \
-         patch("assignment1.main.requests.get") as mock_get, \
-         patch("assignment1.main.verify_consistency") as mock_verify:
-
+    with (
+        patch("assignment1.main.get_latest_checkpoint") as mock_latest,
+        patch("assignment1.main.requests.get") as mock_get,
+        patch("assignment1.main.verify_consistency") as mock_verify,
+    ):
         # Mock latest checkpoint
-        mock_latest.return_value = {
-            "treeSize": 2000,
-            "rootHash": "b" * 64
-        }
+        mock_latest.return_value = {"treeSize": 2000, "rootHash": "b" * 64}
 
         # Mock consistency proof response
         mock_response = Mock()
-        mock_response.json.return_value = {
-            "hashes": ["hash1", "hash2", "hash3"]
-        }
+        mock_response.json.return_value = {"hashes": ["hash1", "hash2", "hash3"]}
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
@@ -280,14 +274,11 @@ def test_consistency_invalid_tree_size():
     prev_checkpoint = {
         "treeID": "test-tree-id",
         "treeSize": -1,  # Invalid
-        "rootHash": "a" * 64
+        "rootHash": "a" * 64,
     }
 
     with patch("assignment1.main.get_latest_checkpoint") as mock_latest:
-        mock_latest.return_value = {
-            "treeSize": 2000,
-            "rootHash": "b" * 64
-        }
+        mock_latest.return_value = {"treeSize": 2000, "rootHash": "b" * 64}
 
         result = consistency(prev_checkpoint, debug=False)
 
@@ -301,14 +292,11 @@ def test_consistency_invalid_root_hash():
     prev_checkpoint = {
         "treeID": "test-tree-id",
         "treeSize": 1000,
-        "rootHash": "invalid"  # Too short
+        "rootHash": "invalid",  # Too short
     }
 
     with patch("assignment1.main.get_latest_checkpoint") as mock_latest:
-        mock_latest.return_value = {
-            "treeSize": 2000,
-            "rootHash": "b" * 64
-        }
+        mock_latest.return_value = {"treeSize": 2000, "rootHash": "b" * 64}
 
         result = consistency(prev_checkpoint, debug=False)
 
@@ -319,11 +307,7 @@ def test_consistency_network_error():
     """Test consistency() handles network errors."""
     from assignment1.main import consistency
 
-    prev_checkpoint = {
-        "treeID": "test-tree-id",
-        "treeSize": 1000,
-        "rootHash": "a" * 64
-    }
+    prev_checkpoint = {"treeID": "test-tree-id", "treeSize": 1000, "rootHash": "a" * 64}
 
     with patch("assignment1.main.get_latest_checkpoint") as mock_latest:
         mock_latest.side_effect = requests.RequestException("Network error")
@@ -340,13 +324,14 @@ def test_inclusion_with_debug(tmp_path, capsys):
     artifact = tmp_path / "artifact.txt"
     artifact.write_text("test content")
 
-    with patch("assignment1.main.validate_log_index") as mock_validate, \
-         patch("assignment1.main.get_log_entry") as mock_get_entry, \
-         patch("assignment1.main.get_user_auth") as mock_auth, \
-         patch("assignment1.main.extract_public_key") as mock_extract, \
-         patch("assignment1.main.verify_artifact_signature") as mock_verify_sig, \
-         patch("assignment1.main.verify_inclusion") as mock_verify_inc:
-
+    with (
+        patch("assignment1.main.validate_log_index") as mock_validate,
+        patch("assignment1.main.get_log_entry") as mock_get_entry,
+        patch("assignment1.main.get_user_auth") as mock_auth,
+        patch("assignment1.main.extract_public_key") as mock_extract,
+        patch("assignment1.main.verify_artifact_signature") as mock_verify_sig,
+        patch("assignment1.main.verify_inclusion") as mock_verify_inc,
+    ):
         mock_validate.return_value = True
         mock_get_entry.return_value = {
             "uuid": {
@@ -356,9 +341,9 @@ def test_inclusion_with_debug(tmp_path, capsys):
                         "logIndex": 123,
                         "rootHash": "a" * 64,
                         "treeSize": 1000,
-                        "hashes": ["hash1"]
+                        "hashes": ["hash1"],
                     }
-                }
+                },
             }
         }
         mock_auth.return_value = (b"sig", b"cert")
@@ -377,20 +362,14 @@ def test_consistency_with_debug(capsys):
     """Test consistency() with debug mode enabled."""
     from assignment1.main import consistency
 
-    prev_checkpoint = {
-        "treeID": "test-id",
-        "treeSize": 1000,
-        "rootHash": "a" * 64
-    }
+    prev_checkpoint = {"treeID": "test-id", "treeSize": 1000, "rootHash": "a" * 64}
 
-    with patch("assignment1.main.get_latest_checkpoint") as mock_latest, \
-         patch("assignment1.main.requests.get") as mock_get, \
-         patch("assignment1.main.verify_consistency") as mock_verify:
-
-        mock_latest.return_value = {
-            "treeSize": 2000,
-            "rootHash": "b" * 64
-        }
+    with (
+        patch("assignment1.main.get_latest_checkpoint") as mock_latest,
+        patch("assignment1.main.requests.get") as mock_get,
+        patch("assignment1.main.verify_consistency") as mock_verify,
+    ):
+        mock_latest.return_value = {"treeSize": 2000, "rootHash": "b" * 64}
 
         mock_response = Mock()
         mock_response.json.return_value = {"hashes": ["h1", "h2"]}

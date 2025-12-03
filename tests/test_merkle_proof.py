@@ -155,7 +155,7 @@ def test_compute_leaf_hash_returns_hex():
     result = compute_leaf_hash(test_data)
 
     # Should be valid hex
-    assert all(c in '0123456789abcdefABCDEF' for c in result)
+    assert all(c in "0123456789abcdefABCDEF" for c in result)
     assert len(result) == 64
 
 
@@ -289,7 +289,7 @@ def test_verify_consistency_simple():
         2,  # new size
         proof,
         root1.hex(),
-        root2.hex()
+        root2.hex(),
     )
 
 
@@ -307,7 +307,7 @@ def test_verify_consistency_equal_sizes():
         1,  # new size (same)
         [],  # empty proof
         leaf0.hex(),
-        leaf0.hex()
+        leaf0.hex(),
     )
 
 

@@ -135,6 +135,7 @@ def test_validate_log_index_http_404():
     with patch("assignment1.util.requests.get") as mock_get:
         # Create a proper HTTPError
         import requests
+
         mock_response = Mock()
         mock_response.status_code = 404
         http_error = requests.HTTPError("404 Not Found")
@@ -172,9 +173,7 @@ def test_get_user_auth():
         "spec": {
             "signature": {
                 "content": signature_content,
-                "publicKey": {
-                    "content": public_key_content
-                }
+                "publicKey": {"content": public_key_content},
             }
         }
     }
@@ -182,11 +181,7 @@ def test_get_user_auth():
     body_json = json.dumps(body_data)
     body_encoded = base64.b64encode(body_json.encode("utf-8")).decode("utf-8")
 
-    log_entry = {
-        "test-uuid-123": {
-            "body": body_encoded
-        }
-    }
+    log_entry = {"test-uuid-123": {"body": body_encoded}}
 
     # Extract auth data
     signature, public_cert = get_user_auth(log_entry)

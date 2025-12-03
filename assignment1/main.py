@@ -97,18 +97,14 @@ def inclusion(log_index: int, artifact_filepath: str, debug: bool = False) -> bo
     """
     try:
         if not validate_log_index(log_index, debug):
-            raise ValueError(
-                f"Inclusion failed: Unable to validate log index: {log_index}"
-            )
+            raise ValueError(f"Inclusion failed: Unable to validate log index: {log_index}")
         validate_artifact_path(artifact_filepath)
         if debug:
             print(f"Given log index validated: {log_index}")
             print(f"Given artifact path validated: {artifact_filepath}")
         data = get_log_entry(log_index)
         if not data:
-            raise ValueError(
-                f"Log entrysource venv/bin/activate missing/invalid: {data}"
-            )
+            raise ValueError(f"Log entrysource venv/bin/activate missing/invalid: {data}")
         signature, public_cert = get_user_auth(data)
         public_key = extract_public_key(public_cert)
 
@@ -124,9 +120,7 @@ def inclusion(log_index: int, artifact_filepath: str, debug: bool = False) -> bo
         uuid = list(data.keys())[0]
         leaf_hash = compute_leaf_hash(data[uuid]["body"].encode("utf-8"))
 
-        verify_inclusion(
-            DEFAULT_HASHER, index, tree_size, leaf_hash, hashes, root_hash, debug
-        )
+        verify_inclusion(DEFAULT_HASHER, index, tree_size, leaf_hash, hashes, root_hash, debug)
     except ValueError as e:
         print(f"Validation error: {e}")
         return False
@@ -195,9 +189,7 @@ def consistency(prev_checkpoint: Dict[str, Any], debug: bool = False) -> bool:
         if not validate_root_hash(latest_root_hash):
             raise ValueError(f"Invalid latest checkpoint root hash: {latest_root_hash}")
 
-        response = requests.get(
-            GET_PROOF.format(size_1, size_2, tree_id), timeout=REQUEST_TIMEOUT
-        )
+        response = requests.get(GET_PROOF.format(size_1, size_2, tree_id), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         verify_consistency(
             DEFAULT_HASHER,
@@ -258,15 +250,11 @@ def main() -> None:
                         checkpoint with the latest checkpoint.",
         action="store_true",
     )
-    parser.add_argument(
-        "--tree-id", help="Tree ID for consistency proof", required=False
-    )
+    parser.add_argument("--tree-id", help="Tree ID for consistency proof", required=False)
     parser.add_argument(
         "--tree-size", help="Tree size for consistency proof", required=False, type=int
     )
-    parser.add_argument(
-        "--root-hash", help="Root hash for consistency proof", required=False
-    )
+    parser.add_argument("--root-hash", help="Root hash for consistency proof", required=False)
     args = parser.parse_args()
     if args.debug:
         debug = True

@@ -206,9 +206,7 @@ def chain_inner(hasher: Hasher, seed: bytes, proof: List[bytes], index: int) -> 
     return seed
 
 
-def chain_inner_right(
-    hasher: Hasher, seed: bytes, proof: List[bytes], index: int
-) -> bytes:
+def chain_inner_right(hasher: Hasher, seed: bytes, proof: List[bytes], index: int) -> bytes:
     """
     Chain inner proof hashes to the right.
 
@@ -263,10 +261,7 @@ class RootMismatchError(Exception):
         """Return string representation of the error."""
         calc_root_str = self.calculated_root.decode("ascii")
         exp_root_str = self.expected_root.decode("ascii")
-        return (
-            f"calculated root:\n{calc_root_str}\n "
-            f"does not match expected root:\n{exp_root_str}"
-        )
+        return f"calculated root:\n{calc_root_str}\n does not match expected root:\n{exp_root_str}"
 
 
 def root_from_inclusion_proof(
@@ -292,9 +287,7 @@ def root_from_inclusion_proof(
         raise ValueError(f"index is beyond size: {index} >= {size}")
 
     if len(leaf_hash) != hasher.size():
-        raise ValueError(
-            f"leaf_hash has unexpected size {len(leaf_hash)}, want {hasher.size()}"
-        )
+        raise ValueError(f"leaf_hash has unexpected size {len(leaf_hash)}, want {hasher.size()}")
 
     inner, border = decomp_incl_proof(index, size)
     if len(proof) != inner + border:
@@ -337,9 +330,7 @@ def verify_inclusion(
 
     bytearray_root = bytes.fromhex(root)
     bytearray_leaf = bytes.fromhex(leaf_hash)
-    calc_root = root_from_inclusion_proof(
-        hasher, index, size, bytearray_leaf, bytearray_proof
-    )
+    calc_root = root_from_inclusion_proof(hasher, index, size, bytearray_leaf, bytearray_proof)
     verify_match(calc_root, bytearray_root)
     if debug:
         print("Calculated root hash", calc_root.hex())
