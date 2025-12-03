@@ -9,16 +9,15 @@ import base64
 import json
 import os
 import re
-from typing import Dict, Any, Tuple
+from typing import Any
 
+import requests
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
-from cryptography.exceptions import InvalidSignature
-import requests
 
 from assignment1.constants import GET_LOG_ENTRY, REQUEST_TIMEOUT
 
@@ -49,9 +48,7 @@ def extract_public_key(cert: bytes) -> bytes:
     return pem_public_key
 
 
-def verify_artifact_signature(
-    signature: bytes, public_key: bytes, artifact_filename: str
-) -> None:
+def verify_artifact_signature(signature: bytes, public_key: bytes, artifact_filename: str) -> None:
     """
     Verify artifact signature using public key.
 
@@ -71,7 +68,7 @@ def verify_artifact_signature(
 
     # verify the signature
     try:
-        loaded_public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))  # type: ignore[attr-defined]
+        loaded_public_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))  # type: ignore
     except InvalidSignature as e:
         print("Signature is invalid", e)
         raise ValueError("Signature is invalid") from e
@@ -97,9 +94,7 @@ def validate_log_index(log_index: int, debug: bool) -> bool:
     if not isinstance(log_index, int) or log_index < 0:
         raise ValueError(f"Log index should be a non-negative integer, {log_index}")
     try:
-        response = requests.get(
-            GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT
-        )
+        response = requests.get(GET_LOG_ENTRY.format(log_index), timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
     except requests.HTTPError as e:
         if e.response.status_code == 404:
@@ -116,7 +111,7 @@ def validate_log_index(log_index: int, debug: bool) -> bool:
 
 
 # derive signature and public key from given log entry
-def get_user_auth(log_entry: Dict[str, Any]) -> Tuple[bytes, bytes]:
+def get_user_auth(log_entry: dict[str, Any]) -> tuple[bytes, bytes]:
     """
     Extract signature and public certificate from log entry.
 
