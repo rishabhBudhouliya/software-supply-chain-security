@@ -1,5 +1,9 @@
 # Rekor Verifier
 
+![CI Status](https://github.com/rishabhBudhouliya/software-supply-chain-security/actions/workflows/ci.yml/badge.svg)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/rishabhBudhouliya/software-supply-chain-security/badge)](https://scorecard.dev/viewer/?uri=github.com/rishabhBudhouliya/software-supply-chain-security)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/XXXX/badge)](https://www.bestpractices.dev/projects/XXXX)
+
 A Python tool for verifying inclusion and consistency proofs in the Rekor transparency log.
 
 ## What it does
