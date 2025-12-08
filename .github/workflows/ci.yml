@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-checks:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      # Environment Setup
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for TruffleHog
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      # Dependency Installation
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --with dev
+
+      # Code Formatting Check
+      - name: Check code formatting with Ruff
+        run: poetry run ruff format --check assignment1/ tests/
+
+      # Linting
+      - name: Lint with Ruff
+        run: poetry run ruff check assignment1/ tests/
+
+      - name: Lint with Flake8
+        run: poetry run flake8 assignment1/ tests/ --max-line-length=100
+
+      - name: Lint with Pylint
+        run: poetry run pylint assignment1/*.py
+
+      - name: Type check with Mypy
+        run: poetry run mypy assignment1/
+
+      # Security Scanning
+      - name: Security scan with Bandit
+        run: |
+          poetry run bandit -r assignment1/ -f json -o bandit-report.json
+          poetry run bandit -r assignment1/
+
+      - name: Upload Bandit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: Secret scanning with TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+      # Testing with Coverage
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest --cov=assignment1 \
+                            --cov-report=term-missing \
+                            --cov-report=xml \
+                            --cov-report=html \
+                            --cov-fail-under=75
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/

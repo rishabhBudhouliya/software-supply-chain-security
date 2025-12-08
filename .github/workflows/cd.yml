@@ -1,0 +1,124 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v3.0.1
+
+jobs:
+  build:
+    name: Build Package and Generate SBOM
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build package
+        run: poetry build
+
+      - name: Install cyclonedx-bom
+        run: pip install cyclonedx-bom
+
+      - name: Generate SBOM
+        run: |
+          cyclonedx-py poetry \
+            --output cyclonedx-sbom.json \
+            --format json \
+            --poetry-file pyproject.toml
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-and-sbom
+          path: |
+            dist/
+            cyclonedx-sbom.json
+
+  attest:
+    name: Attest SBOM
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-and-sbom
+
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: 'dist/*.whl'
+          sbom-path: 'cyclonedx-sbom.json'
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, attest]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download dist and SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-and-sbom
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Rekor Verifier v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+            ```bash
+            pip install rekor-verifier==${{ steps.version.outputs.VERSION }}
+            ```
+
+            ### Verification
+            Verify the SBOM attestation:
+            ```bash
+            gh attestation verify rekor_verifier-${{ steps.version.outputs.VERSION }}-py3-none-any.whl \
+              --owner rishabhBudhouliya
+            ```
+
+            ### Assets
+            - **Wheel Package**: Python wheel for installation
+            - **Source Distribution**: Source tarball
+            - **SBOM**: CycloneDX SBOM in JSON format
+            - **Attestation**: In-toto attestation for SBOM verification
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            cyclonedx-sbom.json
+          draft: false
+          prerelease: false
+          generate_release_notes: true

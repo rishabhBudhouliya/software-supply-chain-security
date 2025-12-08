@@ -5,15 +5,17 @@ Note: Test structure and implementation assisted by Claude AI (Anthropic).
 Reviewed, understood, and verified by Rishabh Budhouliya.
 """
 
-import pytest
-import hashlib
 import base64
+import hashlib
+
+import pytest
+
 from assignment1.merkle_proof import (
-    Hasher,
-    compute_leaf_hash,
     DEFAULT_HASHER,
     RFC6962_LEAF_HASH_PREFIX,
     RFC6962_NODE_HASH_PREFIX,
+    Hasher,
+    compute_leaf_hash,
 )
 
 
@@ -155,7 +157,7 @@ def test_compute_leaf_hash_returns_hex():
     result = compute_leaf_hash(test_data)
 
     # Should be valid hex
-    assert all(c in '0123456789abcdefABCDEF' for c in result)
+    assert all(c in "0123456789abcdefABCDEF" for c in result)
     assert len(result) == 64
 
 
@@ -172,7 +174,7 @@ def test_verify_match_success():
 
 def test_verify_match_failure():
     """Test verify_match() with non-matching hashes."""
-    from assignment1.merkle_proof import verify_match, RootMismatchError
+    from assignment1.merkle_proof import RootMismatchError, verify_match
 
     hash1 = b"a" * 32
     hash2 = b"b" * 32
@@ -289,7 +291,7 @@ def test_verify_consistency_simple():
         2,  # new size
         proof,
         root1.hex(),
-        root2.hex()
+        root2.hex(),
     )
 
 
@@ -307,14 +309,15 @@ def test_verify_consistency_equal_sizes():
         1,  # new size (same)
         [],  # empty proof
         leaf0.hex(),
-        leaf0.hex()
+        leaf0.hex(),
     )
 
 
 def test_root_mismatch_error():
     """Test that RootMismatchError contains expected and calculated hashes."""
-    from assignment1.merkle_proof import RootMismatchError
     import binascii
+
+    from assignment1.merkle_proof import RootMismatchError
 
     expected = b"expected_hash"
     calculated = b"calculated_hash"
