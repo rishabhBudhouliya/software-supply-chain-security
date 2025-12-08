@@ -36,10 +36,7 @@ jobs:
 
       - name: Generate SBOM
         run: |
-          cyclonedx-py poetry \
-            --output cyclonedx-sbom.json \
-            --format json \
-            --poetry-file pyproject.toml
+          cyclonedx-py environment -o cyclonedx-sbom.json
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
